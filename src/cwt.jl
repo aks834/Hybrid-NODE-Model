@@ -4,6 +4,8 @@
 # for a more involved example, including plotting, wavelet power spectrum
 # and significance levels, see test/cwt_test_elnino.jl 
 
+import Pkg;
+Pkg.add("Statistics")
 
 using Statistics
 include("wavelet.jl")

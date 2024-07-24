@@ -1,6 +1,10 @@
 ##  Wavelet cross spectrum in julia
 ##  Author Bernd Blasius (bernd.blasius@gmail.com)
 
+import Pkg;
+Pkg.add("DSP")
+Pkg.add("Statistics")
+
 using DSP, Statistics
 
 include("wavelet.jl")

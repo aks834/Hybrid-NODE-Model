@@ -14,12 +14,15 @@ module W
 import Pkg;
 Pkg.add("DSP")
 Pkg.add("StatsBase")
+Pkg.add("FFTW")
+Pkg.add("PyPlot")
+Pkg.add("DataFrames")
 
-using CSV, Dierckx, DSP, PyPlot, StatsBase
+using CSV, Dierckx, DSP, PyPlot, StatsBase, FFTW, DataFrames
 
-include("../src/cwt.jl")
-include("../src/tools.jl")
-include("../src/wcs.jl")
+include("../Institute/src/cwt.jl")
+include("../Institute/src/tools.jl")
+include("../Institute/src/wcs.jl")
 
 function do_wavelet(t,x)
   # calculate wavelet transform and power for the chemostat data
@@ -48,7 +51,7 @@ end
 
 function ExtDataFig1()
     # load-in the data
-    df = CSV.read("/home/aksel/Institute/C1.csv")  # read-in data from C1
+    df = CSV.read("/home/aksel/Institute/C1.csv", DataFrame)  # read-in data from C1
     tt  = df[:,1]  # time (days)
     mm  = df[:,2]  # algae (10^6 cells / ml)
     bb  = df[:,3]  # rotifers (animals / ml)
