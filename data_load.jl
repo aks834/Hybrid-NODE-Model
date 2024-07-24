@@ -7,10 +7,10 @@ using CSV
 using DataFrames
 using Plots
 
-# Load the data from CSV
+# Loads the data from CSV
 data = CSV.read("C1.csv", DataFrame)
 
-# Accessing columns using the exact names from the CSV file
+# Accessing columns using the names from the CSV file
 time_days = data[!, "time (days)"]
 algae_cells_ml = data[!, " algae (10^6 cells/ml)"]
 rotifers_animals_ml = data[!, " rotifers (animals/ml)"]
