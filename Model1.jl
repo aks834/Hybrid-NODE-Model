@@ -10,10 +10,11 @@ using ModelingToolkit, DifferentialEquations, Plots
 #then- Implant a Neural Network for one of the variables and see what it generates
 #Maybe- after all that is done, compare those two methods to a standard lotka volterra approach
 
-# Define our state variables: state(t) = initial condition
-@variables t N(t)=80 E(t)=0 J(t)=0 A(t)=0 D(t)=0 B(t)=0 P(t)=0
+# Define the state variables: state(t) = initial condition
+@variables t
+@variables N(t)=80 E(t)=0 J(t)=0 A(t)=0 D(t)=0 B(t)=0 P(t)=0
 
-# Define our parameters-DONE
+# Define parameters
 @parameters β=5.0 
             δ=0.55 
             Nin=80.0 
@@ -31,10 +32,10 @@ using ModelingToolkit, DifferentialEquations, Plots
             νA=0.57e-3 
             νP=28e-9
 
-# Define the differential: takes the derivative with respect to `t`
+# Define the differential
 D = Differential(t)
 
-# Define functions
+# Define functions using symbolic variables
 F_P(N) = rP * N / (kP + N)
 F_B(P) = (P^κ) / (kB^κ + P^κ)
 R_F(P, A) = F_B(P) * A
@@ -56,14 +57,12 @@ algebraic_eqs = [
 ]
 
 # Combine into a system
-@mtkbuild sys = ODESystem(eqs, t; algebraic_constraints=algebraic_eqs)
-
-# Bring these pieces together into an ODESystem with independent variable t
-#@mtkbuild sys = ODESystem(eqs, t)
+@named sys = ODESystem(eqs, t; algebraic=algebraic_eqs)
 
 # Convert from a symbolic to a numerical problem to simulate
+u0 = [N => 80, E => 0, J => 0, A => 0, D => 0, P => 0, B => 0]
 tspan = (0.0, 100.0)
-prob = ODEProblem(sys, [], tspan)
+prob = ODEProblem(sys, u0, tspan)
 
 # Solve the ODE
 sol = solve(prob)
