@@ -59,9 +59,9 @@ D = Differential(t)
 # Define differential equations
 eqs = [
    D(N) ~ (δ * Nin) - (F_P(N) * P) - (δ * N)
-   D(P) ~ (F_P(N) * P) - (F_B(P)*B/ε) - (δ * P) # I don't have an F_B
+   D(P) ~ (F_P(N) * P) - (F_B(P)*B/ε) - (δ * P) 
    D(E) ~ R_E - R_J - (δ * E)
-   D(J) ~ R_J - R_A - ((m + δ) * J)# I don't know what j is
+   D(J) ~ R_J - R_A - ((m + δ) * J)
    D(A) ~ (β * R_A) - ((m + δ) * A)
    D(D) ~ m(J + A) - (δ * D)
    B ~ β * J + A
