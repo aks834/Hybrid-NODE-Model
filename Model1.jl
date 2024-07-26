@@ -2,73 +2,87 @@ import Pkg;
 Pkg.add("ModelingToolkit")
 Pkg.add("DifferentialEquations")
 Pkg.add("Plots")
+#Pkg.add("Symbolics")
+
+
 
 using ModelingToolkit, DifferentialEquations, Plots
 
-#goal: modify this approach to fit what is seen in the wavelet paper- use 6 different diffeqs find the paper's varitales and initial conditions as well as parameters
-#Define diffeqs, D(X) etc for all 6 equations build the system- Simulate through 100 days, compare to data- tune hyper Parameters, 
-#then- Implant a Neural Network for one of the variables and see what it generates
-#Maybe- after all that is done, compare those two methods to a standard lotka volterra approach
 
 # Define the state variables: state(t) = initial condition
-@variables t
-@variables N(t)=80 E(t)=0 J(t)=0 A(t)=0 D(t)=0 B(t)=0 P(t)=0
+@variables t N(t)=80 E(t)=1 J(t)=1 A(t)=1 D(t)=1 B(t)=1 P(t)=1
+
+
+#@syms P(t)  # Define P(t) as a symbolic function
+
 
 # Define parameters
-@parameters β=5.0 
-            δ=0.55 
-            Nin=80.0 
-            rP=3.3 
-            kP=4.3 
-            rB=2.25 
-            kB=15.0 
-            κ=1.25 
-            ε=0.25 
-            m=0.15 
-            θ=0.6 
-            τ=1.8 
-            a=0.9 
-            σ=0.5 
-            νA=0.57e-3 
-            νP=28e-9
+@parameters β=5.0
+           δ=0.55
+           Nin=80.0
+           rP=3.3
+           kP=4.3
+           rB=2.25
+           kB=15.0
+           κ=1.25
+           ε=0.25
+           m=0.15
+           θ=0.6
+           τ=1.8
+           a=0.9
+           σ=0.5
+           νA=0.57e-3
+           νP=28e-9
 
-# Define the differential
+
+# Define functions 
+F_P(N) = rP * N / (kP + N)
+F_B(P) = (rB * (P^κ) )/ (kB^κ + P^κ)
+
+
+R_E(t) = F_B * (P(t)) * A(t) 
+R_J(t) = (R_E * (t-θ))^(-δ*θ)
+R_A(t) = (R_J * (t-τ))^(-δ*τ)
+
+# Check the type of the result of these functions
+#=
+println("Type of F_P(N): ", typeof(F_P(N)))
+println("Type of F_B(P): ", typeof(F_B(P)))
+println("Type of R_E(t): ", typeof(R_E(t)))
+println("Type of R_J(t): ", typeof(R_J(t)))
+println("Type of R_A(t): ", typeof(R_A(t)))=#
+
+
+#Define the differential-take derivative with respect to T
 D = Differential(t)
 
-# Define functions using symbolic variables
-F_P(N) = rP * N / (kP + N)
-F_B(P) = (P^κ) / (kB^κ + P^κ)
-R_F(P, A) = F_B(P) * A
-R_J(E) = E * exp(-δ * (t - θ))
-R_A(J) = J * exp(-δ * (t - τ))
-
-# Define differential equations and algebraic constraints
+# Define differential equations
 eqs = [
-    D(N) ~ -F_P(N) * P - δ * N + Nin,
-    D(E) ~ R_F(P, A) - δ * E,
-    D(J) ~ R_J(E) - m * J - δ * J,
-    D(A) ~ R_A(J) - m * A - δ * A,
-    D(D) ~ -ε * F_B(P) * A - δ * D
+   D(N) ~ (δ * Nin) - (F_P(N) * P) - (δ * N)
+   D(P) ~ (F_P(N) * P) - (F_B(P)*B/ε) - (δ * P) # I don't have an F_B
+   D(E) ~ R_E - R_J - (δ * E)
+   D(J) ~ R_J - R_A - ((m + δ) * J)# I don't know what j is
+   D(A) ~ (β * R_A) - ((m + δ) * A)
+   D(D) ~ m(J + A) - (δ * D)
+   B ~ β * J + A
 ]
 
-# Algebraic constraint for B
-algebraic_eqs = [
-    B ~ β * J + A
-]
+# Create ODE system without algebraic constraints
+@mtkbuild sys = ODESystem(eqs, t)
 
-# Combine into a system
-@named sys = ODESystem(eqs, t; algebraic=algebraic_eqs)
 
-# Convert from a symbolic to a numerical problem to simulate
-u0 = [N => 80, E => 0, J => 0, A => 0, D => 0, P => 0, B => 0]
-tspan = (0.0, 100.0)
-prob = ODEProblem(sys, u0, tspan)
+#Convert from a symbolic problem to a numerical one to simiulate
+tspan = (0.0, 10.0)
+prob = ODEProblem(sys, [], tspan)
+
 
 # Solve the ODE
 sol = solve(prob)
 
+
 # Plot the solution
-p1 = plot(sol, vars=(N, E, J, A, D), title="State Variables")
+p1 = plot(sol, vars=(N, P, E, J, A, D), title="State Variables")
 p2 = plot(sol, vars=B, title="Total Predator Density")
+
 
 plot(p1, p2, layout=(2, 1))
