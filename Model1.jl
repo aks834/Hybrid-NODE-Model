@@ -1,88 +1,95 @@
-import Pkg;
-Pkg.add("ModelingToolkit")
+using Pkg
+
 Pkg.add("DifferentialEquations")
+Pkg.add("ComponentArrays")
+Pkg.add("UnPack")
+Pkg.add("DelayDiffEq")
 Pkg.add("Plots")
-#Pkg.add("Symbolics")
+## JVC: More "normal" way to input ODE (i.e., not using ModelingToolkit)
+
+using DifferentialEquations, ComponentArrays, UnPack, DelayDiffEq, Plots
 
 
+params = ComponentVector(
+  β=5.0,
+  δ=0.55,
+  Nin=80.0,
+  rP=3.3,
+  kP=4.3,
+  rB=2.25,
+  kB=15.0,
+  κ=1.25,
+  ε=0.25,
+  m=0.15,
+  θ=0.6,
+  τ=1.8,
+  a=0.9,
+  σ=0.5,
+  νA=0.57e-3,
+  νP=28e-9
+)
 
-using ModelingToolkit, DifferentialEquations, Plots
+u0 = ComponentVector(
+  N=80.0,
+  P=10.0,
+  E=10.0,
+  J=10.0,
+  A=10.0,
+  D=10.0
+)
 
+function F_P(h, p, t)
+  N, P, E, J, A, D = h(p, t)
+  @unpack β, δ, Nin, rP, kP, rB, kB, κ, ε, m, θ, τ, a, σ, νA, νP = p
 
-# Define the state variables: state(t) = initial condition
-@variables t N(t)=80 E(t)=1 J(t)=1 A(t)=1 D(t)=1 B(t)=1 P(t)=1
+  rP * N / (kP + N)
+end
 
+function F_B(h, p, t)
+  N, P, E, J, A, D = h(p, t)
+  P = abs(P)
+  if (P < 0)
+    println("h: ", h(p, t))
+  end
+  @unpack β, δ, Nin, rP, kP, rB, kB, κ, ε, m, θ, τ, a, σ, νA, νP = p
 
-#@syms P(t)  # Define P(t) as a symbolic function
+  rB * (P^κ) / (kB^κ + P^κ)
+end
 
+function R_E(h, p, t)
+  N, P, E, J, A, D = h(p, t)
+  @unpack β, δ, Nin, rP, kP, rB, kB, κ, ε, m, θ, τ, a, σ, νA, νP = p
 
-# Define parameters
-@parameters β=5.0
-           δ=0.55
-           Nin=80.0
-           rP=3.3
-           kP=4.3
-           rB=2.25
-           kB=15.0
-           κ=1.25
-           ε=0.25
-           m=0.15
-           θ=0.6
-           τ=1.8
-           a=0.9
-           σ=0.5
-           νA=0.57e-3
-           νP=28e-9
+  F_B(h, p, t) * A
+end
 
+function R_J(h, p, t)
+  @unpack β, δ, Nin, rP, kP, rB, kB, κ, ε, m, θ, τ, a, σ, νA, νP = p
 
-# Define functions 
-F_P(N) = rP * N / (kP + N)
-F_B(P) = (rB * (P^κ) )/ (kB^κ + P^κ)
+  (R_E(h, p, t-θ))^(-δ*θ)
+end
 
+function R_A(h, p, t)
+  @unpack β, δ, Nin, rP, kP, rB, kB, κ, ε, m, θ, τ, a, σ, νA, νP = p
 
-R_E(t) = F_B * (P(t)) * A(t) 
-R_J(t) = (R_E * (t-θ))^(-δ*θ)
-R_A(t) = (R_J * (t-τ))^(-δ*τ)
+  (R_J(h, p, t-τ))^(-δ*τ)
+end
 
-# Check the type of the result of these functions
-#=
-println("Type of F_P(N): ", typeof(F_P(N)))
-println("Type of F_B(P): ", typeof(F_B(P)))
-println("Type of R_E(t): ", typeof(R_E(t)))
-println("Type of R_J(t): ", typeof(R_J(t)))
-println("Type of R_A(t): ", typeof(R_A(t)))=#
+function eqs!(du, u, h, p, t)
+  @unpack N, P, E, J, A, D = u
+  @unpack β, δ, Nin, rP, kP, rB, kB, κ, ε, m, θ, τ, a, σ, νA, νP = p
 
+  du[1] = δ * Nin - (F_P(h,p,t) * P) - δ * N
+  du[2] = F_P(h,p,t) * P - F_B(h,p,t)*(β*J+A)/ε - δ * P
+  du[3] = R_E(h,p,t) - R_J(h,p,t) - δ * E
+  du[4] = R_J(h,p,t) - R_A(h,p,t) - (m + δ) * J
+  du[5] = β * R_A(h,p,t) - (m + δ) * A
+  du[6] = m * (J + A) - δ * D
+end
 
-#Define the differential-take derivative with respect to T
-D = Differential(t)
+h(p, t) = collect(u0)
+tspan = (0.0, 35.0)
+outofdomain(u, p, t) = any(u .< 0)
 
-# Define differential equations
-eqs = [
-   D(N) ~ (δ * Nin) - (F_P(N) * P) - (δ * N)
-   D(P) ~ (F_P(N) * P) - (F_B(P)*B/ε) - (δ * P) 
-   D(E) ~ R_E - R_J - (δ * E)
-   D(J) ~ R_J - R_A - ((m + δ) * J)
-   D(A) ~ (β * R_A) - ((m + δ) * A)
-   D(D) ~ m(J + A) - (δ * D)
-   B ~ β * J + A
-]
-
-# Create ODE system without algebraic constraints
-@mtkbuild sys = ODESystem(eqs, t)
-
-
-#Convert from a symbolic problem to a numerical one to simiulate
-tspan = (0.0, 10.0)
-prob = ODEProblem(sys, [], tspan)
-
-
-# Solve the ODE
+prob = DDEProblem(eqs!, u0, h, tspan, params; constant_lags = [params.θ + params.τ], isoutofdomain=outofdomain)
 sol = solve(prob)
-
-
-# Plot the solution
-p1 = plot(sol, vars=(N, P, E, J, A, D), title="State Variables")
-p2 = plot(sol, vars=B, title="Total Predator Density")
-
-
-plot(p1, p2, layout=(2, 1))
