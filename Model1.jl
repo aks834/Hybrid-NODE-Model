@@ -5,7 +5,7 @@ Pkg.add("ComponentArrays")
 Pkg.add("UnPack")
 Pkg.add("DelayDiffEq")
 Pkg.add("Plots")
-## JVC: More "normal" way to input ODE (i.e., not using ModelingToolkit)
+#More "normal" way to input ODE--> not using ModelingToolkit
 
 using DifferentialEquations, ComponentArrays, UnPack, DelayDiffEq, Plots
 
@@ -30,12 +30,18 @@ params = ComponentVector(
 )
 
 u0 = ComponentVector(
-  N=80.0,
-  P=10.0,
-  E=10.0,
-  J=10.0,
-  A=10.0,
-  D=10.0
+ # N=80.0,
+  #P=10.0,
+  #E=10.0,
+  #J=10.0,
+  #A=10.0,
+  #D=10.0
+  N=80000.0,
+  P=150.0,
+  E=0.5,
+  J=0.7,
+  A=10.5,
+  D=0.5
 )
 
 function F_P(h, p, t)
@@ -79,17 +85,24 @@ function eqs!(du, u, h, p, t)
   @unpack N, P, E, J, A, D = u
   @unpack β, δ, Nin, rP, kP, rB, kB, κ, ε, m, θ, τ, a, σ, νA, νP = p
 
-  du[1] = δ * Nin - (F_P(h,p,t) * P) - δ * N
-  du[2] = F_P(h,p,t) * P - F_B(h,p,t)*(β*J+A)/ε - δ * P
-  du[3] = R_E(h,p,t) - R_J(h,p,t) - δ * E
-  du[4] = R_J(h,p,t) - R_A(h,p,t) - (m + δ) * J
-  du[5] = β * R_A(h,p,t) - (m + δ) * A
-  du[6] = m * (J + A) - δ * D
+  du[1] = δ * Nin - (F_P(h,p,t) * P) - δ * N #Nitrogen
+  du[2] = F_P(h,p,t) * P - F_B(h,p,t)*(β*J+A)/ε - δ * P #Algae(prey)
+  du[3] = R_E(h,p,t) - R_J(h,p,t) - δ * E #Eggs(predator)
+  du[4] = R_J(h,p,t) - R_A(h,p,t) - (m + δ) * J #Juvenile(predator)
+  du[5] = β * R_A(h,p,t) - (m + δ) * A #Adult(predator)
+  du[6] = m * (J + A) - δ * D #Dead
 end
 
 h(p, t) = collect(u0)
 tspan = (0.0, 35.0)
-outofdomain(u, p, t) = any(u .< 0)
+outofdomain(u, p, t) = any(u .< -1)
 
 prob = DDEProblem(eqs!, u0, h, tspan, params; constant_lags = [params.θ + params.τ], isoutofdomain=outofdomain)
 sol = solve(prob)
+
+#println(sol)
+plot(sol)
+savefig("values.png")
+
+
+

@@ -9,7 +9,7 @@ using DataFrames
 using Plots
 
 # Loads the data from CSV
-data = CSV.read("C1.csv", DataFrame)
+data = CSV.read("C10.csv", DataFrame)
 
 # Accessing columns using the names from the CSV file
 time_days = data[!, "time (days)"]
