@@ -1,9 +1,12 @@
+# Takes the desired data from C1.csv and reads it into ProcessedData.dat
+# dat is easier to make into a matrix later on
+
 using CSV
 using DataFrames
 
 # Define the path to the input CSV file and output DAT file
-input_file = "/home/aksel/Institute/C1.csv"
-output_file = "/home/aksel/Institute/ProcessedData.dat"
+input_file = "/home/aksel/Institute/data/C1.csv"
+output_file = "/home/aksel/Institute/data/ProcessedData.dat"
 
 # Read the CSV file into a DataFrame
 df = CSV.read(input_file, DataFrame)

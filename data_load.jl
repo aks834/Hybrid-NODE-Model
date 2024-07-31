@@ -1,3 +1,5 @@
+# Visualizes  the data in C1.csv
+
 import Pkg;
 using Pkg
 Pkg.add("CSV")
@@ -28,4 +30,4 @@ plot!(time_days, dead_animals_per_ml, label="Dead animals (per ml)")
 plot!(time_days, external_medium_mu_mol_N_l, label="External Medium (mu mol N / l)", linestyle=:dash)
 
 # Save the plot
-savefig("output_plot.png")
+savefig("/home/aksel/Institute/plots/C1_plot.png")
