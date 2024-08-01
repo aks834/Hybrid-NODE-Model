@@ -47,74 +47,7 @@ end
 
 # Define the experimental parameter
 tspan = (0.0,3.0)
-u0 = [0.44249296,4.6280594]
-p_ = [1.3, 0.9, 0.8, 1.8]
-prob = ODEProblem(lotka!, u0,tspan, p_)
-solution = solve(prob, Vern7(), abstol=1e-12, reltol=1e-12, saveat = 0.1)
-
-# Ideal data
-X = Array(solution)
-t = solution.t
-DX = Array(solution(solution.t, Val{1}))
-
-full_problem = DataDrivenProblem(X, t = t, DX = DX)
-
-# Add noise in terms of the mean
-x̄ = mean(X, dims = 2)
-noise_magnitude = 5e-3
-Xₙ = X .+ (noise_magnitude*x̄) .* randn(eltype(X), size(X))
-
-plot(solution, alpha = 0.75, color = :black, label = ["True Data" nothing])
-scatter!(t, transpose(Xₙ), color = :red, label = ["Noisy Data" nothing])
-## Define the network
-# Gaussian RBF as activation
-rbf(x) = exp.(-(x.^2))
-
-# Multilayer FeedForward
-U = Lux.Chain(
-    Lux.Dense(2,5,rbf), Lux.Dense(5,5, rbf), Lux.Dense(5,5, rbf), Lux.Dense(5,2)
-)
-# Get the initial parameters and state variables of the model
-p, st = Lux.setup(rng, U)
-
-# Define the hybrid model
-function ude_dynamics!(du,u, p, t, p_true)
-    û = U(u, p, st)[1] # Network prediction
-    du[1] = p_true[1]*u[1] + û[1]
-    du[2] = -p_true[4]*u[2] + û[2]
-end
-
-# Closure with the known parameter
-nn_dynamics!(du,u,p,t) = ude_dynamics!(du,u,p,t,p_)
-# Define the problem
-prob_nn = ODEProblem(nn_dynamics!,Xₙ[:, 1], tspan, p)
-
-## Function to train the network
-# Define a predictor
-function predict(θ, X = Xₙ[:,1], T = t)
-    _prob = remake(prob_nn, u0 = X, tspan = (T[1], T[end]), p = θ)
-    Array(solve(_prob, Vern7(), saveat = T,
-                abstol=1e-6, reltol=1e-6,
-                sensealg = ForwardDiffSensitivity()
-                ))
-end
-
-# Simple L2 loss
-function loss(θ)
-    X̂ = predict(θ)
-    sum(abs2, Xₙ .- X̂)
-end
-
-# Container to track the losses
-losses = Float64[]
-
-callback = function (p, l)
-  push!(losses, l)
-  if length(losses)%50==0
-      println("Current loss after $(length(losses)) iterations: $(losses[end])")
-  end
-  return false
-end
+u0 = [0.44249296,4.S
 
 ## Training
 
