@@ -6,21 +6,18 @@ Pkg.add("Plots")=#
 
 using ModelingToolkit, DifferentialEquations, Plots
 
-#NOW_WHEN I GET HOME--> Use sindy from rackaucas' implimentation to find realistic parameters 
-#that fit with the data.-- then do neural network stuff.
-
 # Define state variables: state(t) = initial condition
-@variables t x(t)=11 y(t)=5
+@variables t x(t)=0.44249296 y(t)=4.6280594
 
 # Define our parameters
 #alpha = algae growth rate.
 #beta = frequency with which predator and prey meet - predation
 #gamma = frequency at which predators die 
 #delta = population of predators increases proportionally with prey
-@parameters α=1.5 
-            β=1.0 
-            γ=3.0 
-            δ=1.0
+@parameters α=1.3
+            β=0.9
+            γ=0.8
+            δ=1.8
 
 # Define our differential: Wolves the derivative with respect to `t`
 D = Differential(t)
@@ -41,6 +38,7 @@ prob = ODEProblem(sys, [], tspan)
 sol = solve(prob)
 
 # Plot the solution
-p1 = plot(sol, title = "Algae vs Predators(Rotifers)", lw=2, legend=:topright, label=["Algae(10^6 cells/ml)" "Rotifers(animals/ml)"])
+p1 = plot(sol, title = "Prey vs Predators", lw=2, legend=:topright, label=["Prey" "Predators"])
+savefig("plots/algae_vs_predators.pdf")
 
 plot(p1)

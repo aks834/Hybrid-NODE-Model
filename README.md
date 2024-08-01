@@ -6,7 +6,9 @@ A standard Lotka-Volterra approach will be compared to a hybrid NODE approach.
 All programs in this project are written in julia. To install julia on your machine follow the instructions at: https://julialang.org/downloads/
 Alternatively, execute:
 
-```curl -fsSL https://install.julialang.org | sh ```
+```
+curl -fsSL https://install.julialang.org | sh 
+```
 
 in command line to install julia v1.10.4 .
 
@@ -15,7 +17,9 @@ in command line to install julia v1.10.4 .
 
 Data_load.jl can be used to visualize the initial data. In the file, the desired csv file can be changed. To run the program in command line, execute
 
-``julia data_load.jl``
+```
+julia data_load.jl
+```
 
 This will load a visualization of what is is C1 in a file called 
 
@@ -23,7 +27,9 @@ This will load a visualization of what is is C1 in a file called
 
 The program ``data_filter_to_dat.jl`` can be used to turn the time, algae(10^6 cells/ml), and rotifers(animals/ml) elements into a dat file. To run the program in commant line, execute: 
 
-```julia data_filter_to_dat.jl``` 
+```
+julia data_filter_to_dat.jl
+``` 
 
 The output of this program is ```ProcessedData.dat```, which is accessible via the ```data``` folder.
 
@@ -31,8 +37,12 @@ The output of this program is ```ProcessedData.dat```, which is accessible via t
 ```Neural_diff-equation_approach.jl``` is the hybrid-node model to predict population dynamics. It integrates a neural network for two of the terms in the Lotka-Volterra equations. Based on Chritopher Rackaucas' implementation at: https://github.com/ChrisRackauckas/universal_differential_equations/tree/master
 To run in command line, execute: 
 
-```julia Neural_diff-equation_approach.jl```
+```
+julia Neural_diff-equation_approach.jl
+```
 
-Standard_lotka_volterra.jl will is a standard lotka-volterra model. To run it, execute:
+Standard_lotka_volterra.jl is a standard lotka-volterra model. To run it, execute:
 
-```Standard_lotka_volterra.jl```
+```
+Standard_lotka_volterra.jl
+```
