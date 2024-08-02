@@ -41,8 +41,13 @@ To run in command line, execute:
 julia Neural_diff-equation_approach.jl
 ```
 
-Standard_lotka_volterra.jl is a standard lotka-volterra model. To run it, execute:
+```Standard_lotka_volterra.jl``` is a standard lotka-volterra model. To run it, execute:
 
 ```
 Standard_lotka_volterra.jl
+```
+
+```NODE_Artificial_Data.jl``` is a model which trains off of noisy lotka volterra data to in order to determine whether or not the integrated neural network can match the fit of population flucuations. To run it, execute: 
+```
+NODE_Artificial_Data.jl
 ```

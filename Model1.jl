@@ -1,3 +1,4 @@
+##NOT FUNCTIONAL -May be modified later
 using Pkg
 
 Pkg.add("DifferentialEquations")

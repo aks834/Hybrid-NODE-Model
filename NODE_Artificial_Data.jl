@@ -47,7 +47,74 @@ end
 
 # Define the experimental parameter
 tspan = (0.0,3.0)
-u0 = [0.44249296,4.S
+u0 = [0.44249296,4.6280594]
+p_ = [1.3, 0.9, 0.8, 1.8]
+prob = ODEProblem(lotka!, u0,tspan, p_)
+solution = solve(prob, Vern7(), abstol=1e-12, reltol=1e-12, saveat = 0.1)
+
+# Ideal data
+X = Array(solution)
+t = solution.t
+DX = Array(solution(solution.t, Val{1}))
+
+full_problem = DataDrivenProblem(X, t = t, DX = DX)
+
+# Add noise in terms of the mean
+x̄ = mean(X, dims = 2)
+noise_magnitude = 5e-3
+Xₙ = X .+ (noise_magnitude*x̄) .* randn(eltype(X), size(X))
+
+plot(solution, alpha = 0.75, color = :black, label = ["True Data" nothing])
+scatter!(t, transpose(Xₙ), color = :red, label = ["Noisy Data" nothing])
+## Define the network
+# Gaussian RBF as activation
+rbf(x) = exp.(-(x.^2))
+
+# Multilayer FeedForward
+U = Lux.Chain(
+    Lux.Dense(2,5,rbf), Lux.Dense(5,5, rbf), Lux.Dense(5,5, rbf), Lux.Dense(5,2)
+)
+# Get the initial parameters and state variables of the model
+p, st = Lux.setup(rng, U)
+
+# Define the hybrid model
+function ude_dynamics!(du,u, p, t, p_true)
+    û = U(u, p, st)[1] # Network prediction
+    du[1] = p_true[1]*u[1] + û[1]
+    du[2] = -p_true[4]*u[2] + û[2]
+end
+
+# Closure with the known parameter
+nn_dynamics!(du,u,p,t) = ude_dynamics!(du,u,p,t,p_)
+# Define the problem
+prob_nn = ODEProblem(nn_dynamics!,Xₙ[:, 1], tspan, p)
+
+## Function to train the network
+# Define a predictor
+function predict(θ, X = Xₙ[:,1], T = t)
+    _prob = remake(prob_nn, u0 = X, tspan = (T[1], T[end]), p = θ)
+    Array(solve(_prob, Vern7(), saveat = T,
+                abstol=1e-6, reltol=1e-6,
+                sensealg = ForwardDiffSensitivity()
+                ))
+end
+
+# Simple L2 loss
+function loss(θ)
+    X̂ = predict(θ)
+    sum(abs2, Xₙ .- X̂)
+end
+
+# Container to track the losses
+losses = Float64[]
+
+callback = function (p, l)
+  push!(losses, l)
+  if length(losses)%50==0
+      println("Current loss after $(length(losses)) iterations: $(losses[end])")
+  end
+  return false
+end
 
 ## Training
 
@@ -94,3 +161,38 @@ pl_missing = plot(pl_reconstruction, pl_reconstruction_error, layout = (2,1))
 savefig(pl_missing, joinpath(pwd(), "plots", "$(svname)_missingterm_reconstruction_and_error.pdf"))
 pl_overall = plot(pl_trajectory, pl_missing)
 savefig(pl_overall, joinpath(pwd(), "plots", "$(svname)_reconstruction.pdf"))
+
+c1 = 3 # RGBA(174/255,192/255,201/255,1) # Maroon
+c2 = :orange # RGBA(132/255,159/255,173/255,1) # Red
+c3 = :blue # RGBA(255/255,90/255,0,1) # Orange
+c4 = :purple # RGBA(153/255,50/255,204/255,1) # Purple
+
+p1 = plot(t,abs.(Array(solution) .- estimate)' .+ eps(Float32),
+          lw = 3, yaxis = :log, title = "Timeseries of UODE Error",
+          color = [3 :orange], xlabel = "t",
+          label = ["x(t)" "y(t)"],
+          titlefont = "Helvetica", legendfont = "Helvetica",
+          legend = :topright)
+
+# Plot L₂
+p2 = plot3d(X̂[1,:], X̂[2,:], Ŷ[2,:], lw = 3,
+     title = "Neural Network Fit of U2(t)", color = c1,
+     label = "Neural Network", xaxis = "x", yaxis="y",
+     titlefont = "Helvetica", legendfont = "Helvetica",
+     legend = :bottomright)
+plot!(X̂[1,:], X̂[2,:], Ȳ[2,:], lw = 3, label = "True Missing Term", color=c2)
+
+p3 = scatter(solution, color = [c1 c2], label = ["x data" "y data"],
+             title = "Extrapolated Fit From Short Training Data",
+             titlefont = "Helvetica", legendfont = "Helvetica",
+             markersize = 5)
+
+plot!(p3,true_solution_long, color = [c1 c2], linestyle = :dot, lw=5, label = ["True x(t)" "True y(t)"])
+plot!(p3,estimate_long, color = [c3 c4], lw=1, label = ["Estimated x(t)" "Estimated y(t)"])
+plot!(p3,[2.99,3.01],[0.0,10.0],lw=1,color=:black, label = nothing)
+annotate!([(1.5,13,text("Training \nData", 10, :center, :top, :black, "Helvetica"))])
+l = @layout [grid(1,2)
+             grid(1,1)]
+#plot(p1,p2,p3,layout = l)
+plot(p3)
+savefig(joinpath(pwd(),"plots","$(svname)Extrapolated_fit.png"))
